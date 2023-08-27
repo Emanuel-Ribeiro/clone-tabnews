@@ -1,0 +1,5 @@
+root = true # o editor config vai "subindo" os diretorios até achar o root pra ver se aplicou todas as regras
+
+[*] # isso significa que se aplica a todos os arquivos (é possivel settar extensoes de arquivos)
+indent_style = space # significa que os "tabs" vao ser interpretados como espaço
+indent_size = 2 # cada tab vai ser 2 espaços
