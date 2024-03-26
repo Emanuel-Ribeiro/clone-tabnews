@@ -1,6 +1,10 @@
 name: Construção e implementação da aplicação
 
-on: push
+on:
+  push:
+    branches:
+      - main
+      - develop
 
 env:
   caminho_do_chart: ./charts/
