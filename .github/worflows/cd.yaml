@@ -1,0 +1,32 @@
+name: Construção e implementação da aplicação
+
+on: push
+
+env:
+  caminho_do_chart: ./charts/
+
+jobs:
+
+  build:
+    name: Construção da imagem e armazenamento em registro
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build and send to registry
+        id: build-docker-images
+        uses: ./.github/actions/build-docker-images
+        with:
+          docker_username: ${{secrets.docker_username}}
+          docker_registry: ${{secrets.docker_registry}}
+          docker_password: ${{secrets.docker_password}}
+
+  deploy:
+    name: Deploy da aplicação no k8s
+    runs-on: ubuntu-latest
+    container: 
+      image: alpine/helm:3.2.1
+    steps:
+      - name: configurando o kubeconfig
+        run: echo "${{KUBE_CONFIG_DATA}}" > kubeconfig && export KUBECONFIG=$(pwd)/kubeconfig
+      - name: fazendo deploy com o helm
+        run: helm upgrade ${{ github.repository }} ${{ env.caminho_do_chart }} --install --values=${{ env.caminho_do_chart }}/values-teste.yaml --namespace cursodev --set cursodev.image.tag=${{github.sha}}

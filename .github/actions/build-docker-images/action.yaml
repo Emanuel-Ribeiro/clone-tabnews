@@ -1,0 +1,55 @@
+name: Publicar imagem Docker
+description: 'builda imagens docker e manda para o registry'
+
+inputs:
+  docker_username:
+    description: 'usuario do registry'
+    required: true
+  docker_password:
+    description: 'senha do registry'
+    required: true
+  docker_registry:
+    description: 'endereço do registry' # gitlab.fundao.dev.br:5050/iac/docker-images
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out the repo
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: loga no registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ${{ inputs.docker_registry }}
+        username: ${{ inputs.docker_username }}
+        password: ${{ inputs.docker_password }}
+
+    - name: Extrai os metadados (tags, labels) para o Docker
+      id: meta
+      uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+      with:
+        images: ${{ inputs.docker_registry }}/${{ github.repository }}:${{ github.sha }}
+
+    - name: builda e manda para o registry
+      uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=registry,scope=${{ inputs.docker_registry }}/${{ github.repository }}
+        cache-to: type=registry,mode=max,scope=${{ inputs.docker_registry }}/${{ github.repository }}
+
+    - name: Escaneando vulnerabilidades na imagem (com Snyk)
+      uses: snyk/actions/docker@master
+      continue-on-error: false
+      with:
+        image-ref: '${{ inputs.docker_registry }}/${{ github.repository }}:${{ github.sha }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
